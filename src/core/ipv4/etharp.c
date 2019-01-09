@@ -131,8 +131,9 @@ static u8_t etharp_cached_entry;
   #error "ARP_TABLE_SIZE must fit in an s8_t, you have to reduce it in your lwipopts.h"
 #endif
 
+static cb_t cb_p = NULL;
+static void *cb_ctx = NULL;
 
-static err_t etharp_request_dst(struct netif *netif, const ip4_addr_t *ipaddr, const struct eth_addr* hw_dst_addr);
 static err_t etharp_raw(struct netif *netif,
                         const struct eth_addr *ethsrc_addr, const struct eth_addr *ethdst_addr,
                         const struct eth_addr *hwsrc_addr, const ip4_addr_t *ipsrc_addr,
@@ -143,7 +144,7 @@ static err_t etharp_raw(struct netif *netif,
 void garp_tmr(void)
 {
   struct netif* garp_netif = NULL;
-
+		
   for (garp_netif = netif_list; garp_netif != NULL; garp_netif = garp_netif->next) {
     if (netif_is_up(garp_netif) && netif_is_link_up(garp_netif) && !ip4_addr_isany_val(*netif_ip4_addr(garp_netif))) {
       if ((garp_netif->flags & NETIF_FLAG_ETHARP) && (garp_netif->flags & NETIF_FLAG_GARP)) {
@@ -708,7 +709,9 @@ etharp_input(struct pbuf *p, struct netif *netif)
   etharp_update_arp_entry(netif, &sipaddr, &(hdr->shwaddr),
                    for_us ? ETHARP_FLAG_TRY_HARD : ETHARP_FLAG_FIND_ONLY);
 
-  /* now act on the message itself */
+	if (cb_p != NULL) cb_p(&sipaddr, cb_ctx);
+
+	/* now act on the message itself */
   switch (hdr->opcode) {
   /* ARP request? */
   case PP_HTONS(ARP_REQUEST):
@@ -1142,7 +1145,7 @@ etharp_raw(struct netif *netif, const struct eth_addr *ethsrc_addr,
     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_LEVEL_SERIOUS,
       ("etharp_raw: could not allocate pbuf for ARP request.\n"));
     ETHARP_STATS_INC(etharp.memerr);
-    return ERR_MEM;
+		return ERR_MEM;
   }
   LWIP_ASSERT("check that first pbuf can hold struct etharp_hdr",
               (p->len >= SIZEOF_ETHARP_HDR));
@@ -1202,9 +1205,10 @@ etharp_raw(struct netif *netif, const struct eth_addr *ethsrc_addr,
  *         ERR_MEM if the ARP packet couldn't be allocated
  *         any other err_t on failure
  */
-static err_t
+err_t
 etharp_request_dst(struct netif *netif, const ip4_addr_t *ipaddr, const struct eth_addr* hw_dst_addr)
 {
+	
   return etharp_raw(netif, (struct eth_addr *)netif->hwaddr, hw_dst_addr,
                     (struct eth_addr *)netif->hwaddr, netif_ip4_addr(netif), &ethzero,
                     ipaddr, ARP_REQUEST);
@@ -1225,6 +1229,14 @@ etharp_request(struct netif *netif, const ip4_addr_t *ipaddr)
   LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_request: sending ARP request.\n"));
   return etharp_request_dst(netif, ipaddr, &ethbroadcast);
 }
+
+
+void etharp_register_cb(cb_t cb, void *ctx)
+{
+	cb_p = cb;
+	cb_ctx = ctx;
+}
+
 #endif /* LWIP_IPV4 && LWIP_ARP */
 
 #endif /* LWIP_ARP || LWIP_ETHERNET */

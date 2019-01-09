@@ -107,6 +107,12 @@ err_t etharp_remove_static_entry(const ip4_addr_t *ipaddr);
 
 void etharp_input(struct pbuf *p, struct netif *netif);
 
+err_t etharp_request_dst(struct netif *netif, const ip4_addr_t *ipaddr, const struct eth_addr* hw_dst_addr);
+	
+typedef void(*cb_t)(ip4_addr_t *ipaddr, void *ctx);
+
+void etharp_register_cb(cb_t cb, void *ctx);
+
 #ifdef __cplusplus
 }
 #endif
