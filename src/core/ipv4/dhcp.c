@@ -115,7 +115,7 @@
 /** Minimum length for reply before packet is parsed */
 #define DHCP_MIN_REPLY_LEN             44
 
-#define REBOOT_TRIES                2
+#define REBOOT_TRIES                12
 
 #if LWIP_DNS && LWIP_DHCP_MAX_DNS_SERVERS
 #if DNS_MAX_SERVERS > LWIP_DHCP_MAX_DNS_SERVERS
