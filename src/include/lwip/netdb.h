@@ -145,7 +145,14 @@ static inline int getaddrinfo(const char *nodename, const char *servname, const 
 /* By default fall back to original inet_... macros */
 
 /** @ingroup netdbapi */
+#ifdef TOE_DNS
+struct hostent *toe_gethostbyname_proxy(const char *name);
+#define gethostbyname(name) toe_gethostbyname_proxy(name)
+#else
 #define gethostbyname(name) lwip_gethostbyname(name)
+#endif
+
+
 /** @ingroup netdbapi */
 #define gethostbyname_r(name, ret, buf, buflen, result, h_errnop) \
        lwip_gethostbyname_r(name, ret, buf, buflen, result, h_errnop)
